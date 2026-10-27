@@ -1,0 +1,6 @@
+{
+  "name": "ShulMode — Your Phone, Respectfully Silent",
+  "description": "Automatic Do Not Disturb automation for synagogue prayer, Torah study, and religious schedules using geofencing and smart time-location rules.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
