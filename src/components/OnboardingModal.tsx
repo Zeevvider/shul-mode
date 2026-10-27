@@ -285,32 +285,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {isHe
-                          ? 'פותח את Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS באנדרואיד.'
-                          : 'Opens Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS on Android.'}
+                          ? 'פותח את מסך אישור ״נא לא להפריע״ באנדרואיד.'
+                          : 'Allows ShulMode to automatically turn Do Not Disturb ON and OFF.'}
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdatePermissions({
-                        dndAccessGranted: !permissions.dndAccessGranted,
-                      })
-                    }
-                    className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
-                      permissions.dndAccessGranted
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950'
-                    }`}
-                  >
-                    {permissions.dndAccessGranted
-                      ? isHe
-                        ? 'מאושר ✓'
-                        : 'Access Granted ✓'
-                      : isHe
-                      ? 'אשר גישה'
-                      : 'Grant DND Access'}
-                  </button>
+                  {permissions.dndAccessGranted ? (
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 shrink-0">
+                      <Check className="w-4 h-4" />
+                      <span>{isHe ? 'מאושר' : 'Approved'}</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bridge = (window as any).AndroidShulModeBridge;
+                        if (bridge?.openDndPermissionSettings) {
+                          bridge.openDndPermissionSettings();
+                        } else {
+                          onUpdatePermissions({ dndAccessGranted: true });
+                        }
+                      }}
+                      className="min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950"
+                    >
+                      {isHe ? 'אשר גישה' : 'Grant DND Access'}
+                    </button>
+                  )}
                 </div>
 
                 {/* 2. Background Location */}
@@ -332,25 +332,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRequestBrowserLocation}
-                    className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
-                      permissions.fineLocationGranted &&
-                      permissions.backgroundLocationGranted
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950'
-                    }`}
-                  >
-                    {permissions.fineLocationGranted &&
-                    permissions.backgroundLocationGranted
-                      ? isHe
-                        ? 'מאושר ✓'
-                        : 'Location Granted ✓'
-                      : isHe
-                      ? 'אשר מיקום'
-                      : 'Grant Location'}
-                  </button>
+                  {permissions.fineLocationGranted &&
+                  permissions.backgroundLocationGranted ? (
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 shrink-0">
+                      <Check className="w-4 h-4" />
+                      <span>{isHe ? 'מאושר' : 'Approved'}</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRequestBrowserLocation}
+                      className="min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950"
+                    >
+                      {isHe ? 'אשר מיקום' : 'Grant Location'}
+                    </button>
+                  )}
                 </div>
               </div>
 

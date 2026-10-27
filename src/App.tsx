@@ -197,6 +197,26 @@ export default function App() {
         }
         return prev;
       });
+
+      // Sync real Android OS permission status when running inside the Native Android APK
+      const bridge = (window as any).AndroidShulModeBridge;
+      if (bridge?.isDndPermissionGranted) {
+        try {
+          const dndGranted = Boolean(bridge.isDndPermissionGranted());
+          setPermissions((prev) => {
+            if (prev.dndAccessGranted === dndGranted && prev.nativeBridgeConnected) {
+              return prev;
+            }
+            return {
+              ...prev,
+              dndAccessGranted: dndGranted,
+              nativeBridgeConnected: true,
+            };
+          });
+        } catch {
+          // Ignore bridge read errors
+        }
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, []);

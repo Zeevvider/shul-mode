@@ -58,6 +58,117 @@ export const LocationsView: React.FC<LocationsViewProps> = ({
   const [activeDays, setActiveDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [smartStatusMessage, setSmartStatusMessage] = useState<string | null>(
+    null
+  );
+
+  const SMART_TEMPLATES = [
+    {
+      id: 'main-shul',
+      title: isHe ? 'בית כנסת מרכזי' : 'Main Shul',
+      sub: isHe ? '100 מ׳ · כל השבוע' : '100m radius · All days',
+      defaultName: isHe ? 'בית הכנסת המרכזי' : 'Main Synagogue',
+      radius: 100 as GeofenceRadius,
+      days: [0, 1, 2, 3, 4, 5, 6],
+      start: '',
+      end: '',
+    },
+    {
+      id: 'beit-midrash',
+      title: isHe ? 'ישיבה / בית מדרש' : 'Yeshiva / Beit Midrash',
+      sub: isHe ? '200 מ׳ · א׳–ו׳' : '200m radius · Sun–Fri',
+      defaultName: isHe ? 'בית המדרש' : 'Beit Midrash',
+      radius: 200 as GeofenceRadius,
+      days: [0, 1, 2, 3, 4, 5],
+      start: '07:00',
+      end: '22:30',
+    },
+    {
+      id: 'shtiebel',
+      title: isHe ? 'שטיבל / מניין מהיר' : 'Shtiebel / Minyan Room',
+      sub: isHe ? '50 מ׳ · מיקום מדויק' : '50m tight radius · All days',
+      defaultName: isHe ? 'שטיבל שכונתי' : 'Local Shtiebel',
+      radius: 50 as GeofenceRadius,
+      days: [0, 1, 2, 3, 4, 5, 6],
+      start: '',
+      end: '',
+    },
+    {
+      id: 'campus',
+      title: isHe ? 'קמפוס / מרכז קהילתי' : 'Large Shul Campus',
+      sub: isHe ? '500 מ׳ · מתחם רחב' : '500m wide campus · All days',
+      defaultName: isHe ? 'מרכז קהילתי תורני' : 'Community Shul Campus',
+      radius: 500 as GeofenceRadius,
+      days: [0, 1, 2, 3, 4, 5, 6],
+      start: '',
+      end: '',
+    },
+  ];
+
+  const handleApplySmartTemplate = (
+    tpl: (typeof SMART_TEMPLATES)[number]
+  ) => {
+    setName(tpl.defaultName);
+    setRadiusMeters(tpl.radius);
+    setActiveDays(tpl.days);
+    setStartTime(tpl.start);
+    setEndTime(tpl.end);
+    setSmartStatusMessage(
+      isHe
+        ? `הוחלה תבנית חכמה: ${tpl.title} (${tpl.radius}m)`
+        : `Smart preset applied: ${tpl.title} (${tpl.radius}m radius)`
+    );
+    setTimeout(() => setSmartStatusMessage(null), 3500);
+  };
+
+  const handleInstantStandingHereSave = () => {
+    const saveWithCoords = (lat: number, lng: number) => {
+      setCoords({ lat, lng });
+      const created = onAddLocation({
+        name:
+          name.trim() ||
+          (isHe ? 'בית הכנסת שלי (מיקום נוכחי)' : 'My Shul (Current GPS)'),
+        address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+        lat,
+        lng,
+        radiusMeters,
+        enabled: true,
+        activeDays,
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        simulatedInside: true,
+        enteredAtMs: Date.now() - 120000,
+      });
+      setSmartStatusMessage(
+        isHe
+          ? `נוסף והופעל מיד: ${created.name}`
+          : `Saved & activated at your current spot: ${created.name}`
+      );
+      setTimeout(() => setSmartStatusMessage(null), 4000);
+    };
+
+    if (userCoords) {
+      saveWithCoords(userCoords.lat, userCoords.lng);
+      return;
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          saveWithCoords(
+            Number(pos.coords.latitude.toFixed(6)),
+            Number(pos.coords.longitude.toFixed(6))
+          );
+        },
+        () => {
+          saveWithCoords(coords.lat, coords.lng);
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      saveWithCoords(coords.lat, coords.lng);
+    }
+  };
 
   const handleStartEdit = (loc: SavedLocation) => {
     setEditingId(loc.id);
@@ -137,14 +248,70 @@ export const LocationsView: React.FC<LocationsViewProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRequestRealGps}
-          className="min-h-[42px] px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 self-start sm:self-center whitespace-nowrap"
-        >
-          <Navigation className="w-4 h-4 text-amber-600" />
-          <span>{t.detectRealGpsBtn}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleInstantStandingHereSave}
+            className="min-h-[42px] px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-semibold flex items-center gap-2 hover:bg-amber-400 transition-colors whitespace-nowrap cursor-pointer"
+          >
+            <MapPin className="w-4 h-4" />
+            <span>
+              {isHe
+                ? 'אני בבית הכנסת עכשיו (שמירה בלחיצה 1)'
+                : "I'm at Shul Right Now (1-Tap Save)"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onRequestRealGps}
+            className="min-h-[42px] px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 whitespace-nowrap cursor-pointer"
+          >
+            <Navigation className="w-4 h-4 text-amber-600" />
+            <span>{t.detectRealGpsBtn}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Smart Synagogue Menu */}
+      <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+              {isHe
+                ? 'תפריט חכם ומהיר להוספת בית כנסת'
+                : 'Quick Smart Synagogue Setup Menu'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isHe
+                ? 'בחר סוג מקום כדי להגדיר אוטומטית את השם, הרדיוס האופטימלי וימי הפעילות:'
+                : 'Choose a venue preset to auto-fill optimal radius, active days, and study hours—or search on the map below:'}
+            </p>
+          </div>
+          {smartStatusMessage && (
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              {smartStatusMessage}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {SMART_TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              type="button"
+              onClick={() => handleApplySmartTemplate(tpl)}
+              className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-500/70 bg-slate-50/70 dark:bg-slate-800/40 text-start transition-colors cursor-pointer"
+            >
+              <div className="text-xs font-semibold text-slate-900 dark:text-white">
+                {tpl.title}
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                {tpl.sub}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main 2-Column Split: Interactive Map + Add/Edit Form on Left, Saved Locations List on Right */}
